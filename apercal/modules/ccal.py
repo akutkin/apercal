@@ -100,20 +100,20 @@ class ccal(BaseModule):
             # Create the TEC correction tables for the flux calibrator
 
             if self.fluxcal != '' and os.path.isdir(self.get_fluxcal_path()):
-                if ccalfluxcalTEC or os.path.isdir(
-                        self.get_fluxcal_path().rstrip('.MS') + '.tecim'):
+                fluxcal_tecim = self.get_fluxcal_path().rstrip('.MS') + '.tecim'
+                if ccalfluxcalTEC or os.path.isdir(fluxcal_tecim):
                     logger.warning('TEC correction tables for flux calibrator were already generated')
                     ccalfluxcalTEC = True
                 else:
                     cc_load_tec_maps = 'from recipes import tec_maps'
-                    cc_fluxcal_TEC = 'tec_maps.create(vis = "' + self.get_fluxcal_path() + '", doplot = False)'
+                    cc_fluxcal_TEC = 'tec_maps.create(vis="{}", doplot=False)'.format(self.get_fluxcal_path())
                     lib.run_casa([cc_load_tec_maps, cc_fluxcal_TEC])
                     fluxcal_infile = self.get_fluxcal_path() + ".IGS_TEC.im"
                     # Check if the TEC corrections could be downloaded
                     if os.path.isdir(fluxcal_infile):
                         cc_load_tec_maps = 'from recipes import tec_maps'
                         cc_fluxcal_genTEC = gencal_cmd.format(vis=self.get_fluxcal_path(),
-                                                              caltable=self.get_fluxcal_path().rstrip('.MS') + ".tecim",
+                                                              caltable=fluxcal_tecim,
                                                               caltype="tecim",
                                                               infile=fluxcal_infile)
 
@@ -129,7 +129,8 @@ class ccal(BaseModule):
                         logger.warning('TEC images could not be generated for flux calibrator')
                         ccalfluxcalTEC = False
             else:
-                error = 'Flux calibrator dataset not specified or dataset not available. TEC corrections will not be used for flux calibrator'
+                error = 'Flux calibrator dataset not specified or dataset not available. ' \
+                        'TEC corrections will not be used for flux calibrator'
                 logger.error(error)
                 raise RuntimeError(error)
                 ccalfluxcalTEC = False
@@ -174,7 +175,6 @@ class ccal(BaseModule):
 
             if self.target != '':
                 for vis, beam in self.get_datasets():
-                    target_tecim
                     if ccaltargetbeamsTEC[int(beam)] or os.path.isdir(self.get_target_path().rstrip('.MS') + '_B' +
                             beam + '.MS.tecim'):
                         logger.info(
@@ -251,16 +251,16 @@ class ccal(BaseModule):
                                                                         self.get_fluxcal_path().rstrip(
                                                                             '.MS') + '.tecim', 'nearest')
 
-                    gaincal_cmd = 'gaincal(vis={vis{, caltable={caltable}, gaintype="G", solint="int", refant="{refant}, ' \
-                                  'calmode = {calmode}, gaintable = {gaintable}, interp={interp}, smodel = [1,0,0,0])'
+                    gaincal_cmd = 'gaincal(vis="{vis}", caltable="{caltable}", gaintype="G", solint="int", ' \
+                                  'refant="{refant}, calmode = {calmode}, gaintable=[{gaintable}],' \
+                                  'interp=[{interp}], smodel = [1,0,0,0])'
 
-    
                     cc_fluxcal_ph = gaincal_cmd.format(vis=self.get_fluxcal_path(),
                                                        caltable=fluxcal_G0ph,
                                                        calmode="p",
                                                        refant=self.crosscal_refant,
-                                                       gaintable="[{}]".format(prevtables),
-                                                       interp="[{}]".format(interp))
+                                                       gaintable=prevtables,
+                                                       interp=interp)
 
                     lib.run_casa([cc_fluxcal_ph], timeout=3600)
                     if os.path.isdir(fluxcal_G0ph):  # Check if calibration table was created successfully
