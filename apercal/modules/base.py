@@ -1,5 +1,5 @@
 from glob import glob
-from os import path
+from os import path, curdir
 from apercal.libs.lib import show
 # from typing import List, Tuple, Any # Leave disabled until we install typing on happili
 from abc import abstractproperty, ABCMeta
@@ -27,6 +27,12 @@ class BaseModule:
     mossubdir = None
     transfersubdir = None
     subdirification = True
+
+    def get_rawsubdir_path(self, beam='00'):
+        if self.subdirification:
+            return path.join(self.basedir, beam, self.rawsubdir)
+        else:
+            return curdir
 
     def get_fluxcal_path(self, beam='00'):
         if self.subdirification:
